@@ -1,0 +1,239 @@
+<!--Joseph Brown
+HW 6-->
+
+<html>
+<head>
+
+<script id="vertex-shader" type="x-shader/x-vertex" >
+precision mediump float;
+
+attribute vec4 attributePosition;
+attribute float attributeBC;
+attribute vec4 vColor;
+
+uniform mat4 uniformTransform;
+uniform mat4 uniformProject;
+uniform int vShader;
+
+varying vec3 varyingBC;
+
+varying vec4 e_color;
+varying vec4 f_color;
+varying vec4 b_color;
+    
+void main() {
+
+    gl_Position = uniformProject * uniformTransform *  attributePosition;
+    if (attributeBC == 0.0) {
+         varyingBC = vec3(1.0, 0.0, 0.0);
+    } else if (attributeBC == 1.0) {
+         varyingBC = vec3(0.0, 1.0, 0.0);
+    } else {
+         varyingBC = vec3(0.0, 0.0, 1.0);
+    }
+    
+    if (vShader == 0) {
+        e_color = vec4(1.0,0.0,0.0,1.0);
+        f_color = vColor;
+        b_color = vec4(0.0,1.0,0.0,0.05);
+    } else if (vShader == 1) {
+        e_color = vec4(0.0,0.0,0.0,1.0);
+        f_color = vColor;
+        b_color = vColor;
+    } else if (vShader == 2) {
+        e_color = vec4(1.0,0.0,0.0,1.0);
+        f_color = vColor;
+        b_color = vec4(0.0,1.0,0.0,1.0);
+    } else if (vShader == 3) {
+        e_color = vec4(1.0,1.0,1.0,1.0);
+        f_color = vColor;
+        b_color = vec4(1.0,1.0,1.0,1.0);
+    } else if (vShader == 4) {
+        e_color = vec4(1.0,0.0,0.0,1.0);
+        f_color = vColor;
+        b_color = vec4(0.0,1.0,1.0,1.0);
+    }
+    
+    
+    
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+    precision mediump float;
+    varying vec3 varyingBC;
+    uniform vec4 uniformEdgeColor;
+    uniform vec4 uniformSurfaceColor;
+    
+    varying vec4 e_color;
+    varying vec4 f_color;
+    varying vec4 b_color;
+
+    // wireframe shader
+    void main(){
+       // front face
+       if (gl_FrontFacing) {  
+           if (any(lessThan(varyingBC, vec3(0.03)))) {
+               gl_FragColor= e_color;
+           } else {
+               gl_FragColor= f_color;
+           }
+       } else {
+           // back facing
+           if (any(lessThan(varyingBC, vec3(0.05)))) {
+               gl_FragColor= e_color;
+	   } else {
+	      gl_FragColor = b_color;
+	      
+	   }
+       }
+    }
+    
+    
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+
+<script type="text/javascript" src="../Models/teapot.js"></script>
+ <!-- 
+<script type="text/javascript" src="../Models/lizard.js"></script>
+-->
+<script type="text/javascript" src="GLCanvas.js"></script>
+<script type="text/javascript" src="Widget.js"></script>
+<script type="text/javascript" src="Wrapper.js"></script>
+
+
+<style>
+input {
+    text-align: right;
+}
+
+form {
+    margin: 20px 0 0 277px;
+}
+
+form input {
+    margin-bottom: 5px;
+}
+
+select {
+    display: inline-block;
+}
+
+#button {
+    margin-top: 20px;
+    margin-left: 112px;
+}
+
+#apply {
+    display:block;
+}
+</style>
+</head>
+
+<body>
+ 
+<script>
+
+    var growing = true;
+    var shrinking = false;   
+    //[  t ] [ s ] [  r  ]  
+    let rightsideUp = [0,0.5,1,1,1,1,-90,0,0];
+    var canvas = new Canvas(500, 500, Keypress);
+    var widget = new Widget(canvas.GL(), canvas.Program(), Teapot_Triangles, rightsideUp);
+	  
+    var obj1 = new Wrapper(canvas.GL(), canvas.Program(), widget, 0);    
+    var obj2 = new Wrapper(canvas.GL(), canvas.Program(), widget, 1);
+    var obj3 = new Wrapper(canvas.GL(), canvas.Program(), widget, 2);
+    var obj4 = new Wrapper(canvas.GL(), canvas.Program(), widget, 3);
+    var obj5 = new Wrapper(canvas.GL(), canvas.Program(), widget, 4);
+    obj2.Modify([1.7,1.7,3,.25,.25,.25,0,0,0]);
+    obj3.Modify([1.7,-1.8,3,.25,.25,.25,0,0,0]);
+    obj4.Modify([-1.7,1.7,3,.25,.25,.25,0,0,0]);
+    obj5.Modify([-1.5,-1.6,3,.25,.25,.25,0,0,0]);
+    Reset();
+
+    function Keypress(evnt) {
+       switch(evnt.key) {
+          case 'x': obj1.rx++; break;
+          case 'y': obj1.ry++; break;
+          case 'z': obj1.rz++; break;
+          case 'X': obj1.rx--; break;
+          case 'Y': obj1.ry--; break;
+          case 'Z': obj1.rz--; break;
+          case '-': obj1.Scale(0.9,0.9,0.9); break;
+          case '+': obj1.Scale(1.1,1.1,1.1); break;
+          case 'r': Reset(); break;
+          case 'R': Reset(); break;
+       }
+
+       Redisplay();
+    }
+    
+    function Animate() {
+        
+        obj2.Rotate(0,1,0);
+        obj3.Rotate(1,0,0);
+        obj4.Rotate(0,0,1);
+        
+        if (growing && (obj5.GetSX() <= 2.0)) {
+            obj5.Scale(1.1,1.1,1.1);
+        } else {
+            growing = false;
+            shrinking = true;
+        }
+        
+        if (shrinking && (obj5.GetSX() >= 0.5)) {
+            obj5.Scale(0.9,0.9,0.9);
+        } else {
+            shrinking = false;
+            growing = true;
+        }
+        
+        Redisplay();
+        setTimeout(Animate,20);
+    }
+    
+    function ModifyFrustum() {
+        canvas.ModifyCamera();
+        canvas.ModifyFrustum();
+        Reset();
+    }
+    
+    function Reset() {
+        obj1.Reset();
+        obj2.Reset();
+        obj3.Reset();
+        obj4.Reset();
+        obj5.Reset();
+    }
+
+    function Redisplay() {
+        canvas.Clear();
+        obj1.Display(canvas.GL(), mat4(), canvas.Translate());
+        obj2.Display(canvas.GL(), mat4(), canvas.Translate());
+        obj3.Display(canvas.GL(), mat4(), canvas.Translate());
+        obj4.Display(canvas.GL(), mat4(), canvas.Translate());
+        obj5.Display(canvas.GL(), mat4(), canvas.Translate());
+    }
+    
+    Redisplay();
+    Animate();
+</script>
+
+<form id="form">
+Width: <input style="margin-left: 4px;" type="number" name="Width" value="1"><br>
+Height: <input type="number" name="Height" value="1"><br>
+Near: <input style="margin-left: 12px;" type="number" name="Near" value="1" min="0"><br>
+Far: <input style="margin-left: 21px;" type="number" name="Far" value="10" max = "10"><br>
+Camera: <input style="margin-left: 98px;" type="number" name="Eye" value="-1" min = "-10" max="-0.5"><br>
+<input id = "button" type="button" id="refresh" value="Reset" onclick="document.location.reload(true)"> 
+<input  type="button" value="Submit" onclick="ModifyFrustum()">
+
+</form>
+
+
+</body>
